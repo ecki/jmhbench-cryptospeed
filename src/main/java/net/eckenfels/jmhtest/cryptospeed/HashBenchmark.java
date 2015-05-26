@@ -38,6 +38,7 @@ public class HashBenchmark
 
     // pre created MDs for the reuse case
     private MessageDigest sha1;
+    private MessageDigest sha224;
     private MessageDigest sha256;
     private MessageDigest sha384;
     private MessageDigest sha512;
@@ -54,6 +55,7 @@ public class HashBenchmark
         r.nextBytes(inputBuf);
 
         sha1 = MessageDigest.getInstance("SHA-1");
+        sha224 = MessageDigest.getInstance("SHA-224");
         sha256 = MessageDigest.getInstance("SHA-256");
         sha384 = MessageDigest.getInstance("SHA-384");
         sha512 = MessageDigest.getInstance("SHA-512");
@@ -70,6 +72,13 @@ public class HashBenchmark
         return digest.digest(inputBuf);
     }
 
+    @Benchmark
+    public byte[] SHA224()
+        throws NoSuchAlgorithmException
+    {
+        MessageDigest digest = MessageDigest.getInstance("SHA-224");
+        return digest.digest(inputBuf);
+    }
 
     @Benchmark
     public byte[] SHA256()
@@ -104,6 +113,12 @@ public class HashBenchmark
         return digest.digest(inputBuf);
     }
 
+    @Benchmark
+    public byte[] SHA224Reuse()
+    {
+        MessageDigest digest = sha224;
+        return digest.digest(inputBuf);
+    }
 
     @Benchmark
     public byte[] SHA256Reuse()

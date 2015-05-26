@@ -43,6 +43,7 @@ public class HmacBenchmark
 
     private SecretKey keyMD5;
     private SecretKey keySHA1;
+    private SecretKey keySHA224;
     private SecretKey keySHA256;
     private SecretKey keySHA384;
     private SecretKey keySHA512;
@@ -61,6 +62,8 @@ public class HmacBenchmark
         keyMD5 = keyGen.generateKey();
         keyGen = KeyGenerator.getInstance("HmacSHA1");
         keySHA1 = keyGen.generateKey();
+        keyGen = KeyGenerator.getInstance("HmacSHA224");
+        keySHA224 = keyGen.generateKey();
         keyGen = KeyGenerator.getInstance("HmacSHA256");
         keySHA256 = keyGen.generateKey();
         keyGen = KeyGenerator.getInstance("HmacSHA384");
@@ -85,6 +88,16 @@ public class HmacBenchmark
     {
         Mac mac = Mac.getInstance("HmacSHA1");
         mac.init(keySHA1);
+        return mac.doFinal(inputBuf);
+    }
+
+
+    @Benchmark
+    public byte[] HmacSHA224()
+        throws NoSuchAlgorithmException, InvalidKeyException
+    {
+        Mac mac = Mac.getInstance("HmacSHA224");
+        mac.init(keySHA224);
         return mac.doFinal(inputBuf);
     }
 
