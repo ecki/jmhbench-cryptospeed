@@ -37,7 +37,7 @@ public class HashBenchmark
     @Param(value = { "SHA1", "SHA224", "SHA256", "SHA384", "SHA512", "MD5" /* , "MD2" */ })
     private String algo;
 
-    @Param(value = { "Sun" })
+    @Param(value = { "null", "SUN", "IBMJCE" })
     private String provider;
 
 
@@ -58,16 +58,21 @@ public class HashBenchmark
         inputBuf = new byte[size];
         r.nextBytes(inputBuf);
 
-        current = MessageDigest.getInstance(algo, provider);
+        if ("null".equalsIgnoreCase(provider))
+            provider = null;
+
+        current = allocateDigest();
+
         workOut = new byte[current.getDigestLength()];
     }
 
+    // - alloc digest
 
     @Benchmark
     public byte[] digestFinalAllocCopy()
         throws NoSuchAlgorithmException, NoSuchProviderException
     {
-        MessageDigest digest = MessageDigest.getInstance(algo, provider);
+        MessageDigest digest = allocateDigest();
         return digest.digest(inputBuf);
     }
 
@@ -75,10 +80,22 @@ public class HashBenchmark
     public byte[] digestUpdateAllocCopy()
         throws NoSuchAlgorithmException, NoSuchProviderException
     {
-        MessageDigest digest = MessageDigest.getInstance(algo, provider);
+        MessageDigest digest = allocateDigest();
         digest.update(inputBuf);
         return digest.digest();
     }
+
+    @Benchmark
+    public byte[] digestUpdateAllocWork()
+        throws NoSuchAlgorithmException, NoSuchProviderException, DigestException
+    {
+        MessageDigest digest = allocateDigest();
+        digest.update(inputBuf);
+        digest.digest(workOut, 0, workOut.length);
+        return workOut;
+    }
+
+    // - reuse digest
 
     @Benchmark
     public byte[] digestUpdateReuseCopy()
@@ -86,17 +103,6 @@ public class HashBenchmark
     {
         current.update(inputBuf);
         return current.digest();
-    }
-
-
-    @Benchmark
-    public byte[] digestUpdateAllocWork()
-        throws NoSuchAlgorithmException, NoSuchProviderException, DigestException
-    {
-        MessageDigest digest = MessageDigest.getInstance(algo, provider);
-        digest.update(inputBuf);
-        digest.digest(workOut, 0, workOut.length);
-        return workOut;
     }
 
     @Benchmark
@@ -112,5 +118,14 @@ public class HashBenchmark
     public byte[] digestFinalReuseCopy()
     {
         return current.digest(inputBuf);
+    }
+
+
+    private MessageDigest allocateDigest() throws NoSuchAlgorithmException, NoSuchProviderException
+    {
+        if (provider != null)
+            return MessageDigest.getInstance(algo, provider);
+        else
+            return MessageDigest.getInstance(algo);
     }
 }
