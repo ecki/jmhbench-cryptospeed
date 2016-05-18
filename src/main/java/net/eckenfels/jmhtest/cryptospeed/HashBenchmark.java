@@ -1,9 +1,10 @@
 package net.eckenfels.jmhtest.cryptospeed;
 
 
-import java.nio.ByteBuffer;
+import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -30,147 +31,86 @@ import org.openjdk.jmh.annotations.Warmup;
 @State(Scope.Thread)
 public class HashBenchmark
 {
-    @Param(value = {"0", "100", "1024", "1048576"})
-    int bufsize;
+    @Param(value = { "0", "100", "1024", "1048576" })
+    int size;
+
+    @Param(value = { "SHA1", "SHA224", "SHA256", "SHA384", "SHA512", "MD5" /* , "MD2" */ })
+    private String algo;
+
+    @Param(value = { "Sun" })
+    private String provider;
+
+
+    // pre-created MDs for the reuse case
+    private MessageDigest current;
+    // pre-allocated digest result
+    private byte[] workOut;
 
     // thread local buffer to work on
-    public byte[] inputBuf;
-
-    // pre created MDs for the reuse case
-    private MessageDigest sha1;
-    private MessageDigest sha224;
-    private MessageDigest sha256;
-    private MessageDigest sha384;
-    private MessageDigest sha512;
-    private MessageDigest md5;
-    private MessageDigest md2;
+    private byte[] inputBuf;
 
 
     @Setup
     public void init()
-        throws NoSuchAlgorithmException
+        throws NoSuchAlgorithmException, NoSuchProviderException
     {
         Random r = new Random(42);
-        inputBuf = new byte[bufsize];
+        inputBuf = new byte[size];
         r.nextBytes(inputBuf);
 
-        sha1 = MessageDigest.getInstance("SHA-1");
-        sha224 = MessageDigest.getInstance("SHA-224");
-        sha256 = MessageDigest.getInstance("SHA-256");
-        sha384 = MessageDigest.getInstance("SHA-384");
-        sha512 = MessageDigest.getInstance("SHA-512");
-        md5 = MessageDigest.getInstance("MD5");
-        md2 = MessageDigest.getInstance("MD2");
+        current = MessageDigest.getInstance(algo, provider);
+        workOut = new byte[current.getDigestLength()];
     }
 
 
     @Benchmark
-    public byte[] SHA1()
-        throws NoSuchAlgorithmException
+    public byte[] digestFinalAllocCopy()
+        throws NoSuchAlgorithmException, NoSuchProviderException
     {
-        MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        MessageDigest digest = MessageDigest.getInstance(algo, provider);
         return digest.digest(inputBuf);
     }
 
     @Benchmark
-    public byte[] SHA224()
-        throws NoSuchAlgorithmException
+    public byte[] digestUpdateAllocCopy()
+        throws NoSuchAlgorithmException, NoSuchProviderException
     {
-        MessageDigest digest = MessageDigest.getInstance("SHA-224");
-        return digest.digest(inputBuf);
+        MessageDigest digest = MessageDigest.getInstance(algo, provider);
+        digest.update(inputBuf);
+        return digest.digest();
     }
 
     @Benchmark
-    public byte[] SHA256()
-        throws NoSuchAlgorithmException
+    public byte[] digestUpdateReuseCopy()
+        throws NoSuchAlgorithmException, NoSuchProviderException
     {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        return digest.digest(inputBuf);
-    }
-
-    @Benchmark
-    public byte[] SHA384()
-        throws NoSuchAlgorithmException
-    {
-        MessageDigest digest = MessageDigest.getInstance("SHA-384");
-        return digest.digest(inputBuf);
+        current.update(inputBuf);
+        return current.digest();
     }
 
 
     @Benchmark
-    public byte[] SHA512()
-        throws NoSuchAlgorithmException
+    public byte[] digestUpdateAllocWork()
+        throws NoSuchAlgorithmException, NoSuchProviderException, DigestException
     {
-        MessageDigest digest = MessageDigest.getInstance("SHA-512");
-        return digest.digest(inputBuf);
-    }
-
-
-    @Benchmark
-    public byte[] SHA1Reuse()
-    {
-        MessageDigest digest = sha1;
-        return digest.digest(inputBuf);
+        MessageDigest digest = MessageDigest.getInstance(algo, provider);
+        digest.update(inputBuf);
+        digest.digest(workOut, 0, workOut.length);
+        return workOut;
     }
 
     @Benchmark
-    public byte[] SHA224Reuse()
+    public byte[] digestUpdateReuseWork()
+        throws NoSuchAlgorithmException, NoSuchProviderException, DigestException
     {
-        MessageDigest digest = sha224;
-        return digest.digest(inputBuf);
+        current.update(inputBuf);
+        current.digest(workOut, 0, workOut.length);
+        return workOut;
     }
 
     @Benchmark
-    public byte[] SHA256Reuse()
+    public byte[] digestFinalReuseCopy()
     {
-        MessageDigest digest = sha256;
-        return digest.digest(inputBuf);
+        return current.digest(inputBuf);
     }
-
-    @Benchmark
-    public byte[] SHA384Reuse()
-    {
-        MessageDigest digest = sha384;
-        return digest.digest(inputBuf);
-    }
-
-    @Benchmark
-    public byte[] SHA512Reuse()
-    {
-        MessageDigest digest = sha512;
-        return digest.digest(inputBuf);
-    }
-
-    @Benchmark
-    public byte[] MD5()
-        throws NoSuchAlgorithmException
-    {
-        MessageDigest digest = MessageDigest.getInstance("MD5");
-        return digest.digest(inputBuf);
-    }
-
-    @Benchmark
-    public byte[] MD2()
-        throws NoSuchAlgorithmException
-    {
-        MessageDigest digest = MessageDigest.getInstance("MD2");
-        return digest.digest(inputBuf);
-    }
-
-
-    @Benchmark
-    public byte[] MD5Reuse()
-    {
-        MessageDigest digest = md5;
-        return digest.digest(inputBuf);
-    }
-
-
-    @Benchmark
-    public byte[] MD2Reuse()
-    {
-        MessageDigest digest = md2;
-        return digest.digest(inputBuf);
-    }
-
 }
