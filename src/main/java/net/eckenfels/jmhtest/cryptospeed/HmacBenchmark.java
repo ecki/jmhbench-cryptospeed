@@ -1,7 +1,6 @@
 package net.eckenfels.jmhtest.cryptospeed;
 
 
-import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;

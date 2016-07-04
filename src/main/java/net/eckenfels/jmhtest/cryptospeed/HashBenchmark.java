@@ -99,7 +99,6 @@ public class HashBenchmark
 
     @Benchmark
     public byte[] digestUpdateReuseCopy()
-        throws NoSuchAlgorithmException, NoSuchProviderException
     {
         current.update(inputBuf);
         return current.digest();
@@ -107,7 +106,7 @@ public class HashBenchmark
 
     @Benchmark
     public byte[] digestUpdateReuseWork()
-        throws NoSuchAlgorithmException, NoSuchProviderException, DigestException
+        throws DigestException
     {
         current.update(inputBuf);
         current.digest(workOut, 0, workOut.length);
@@ -125,7 +124,7 @@ public class HashBenchmark
     {
         if (provider != null)
             return MessageDigest.getInstance(algo, provider);
-        else
-            return MessageDigest.getInstance(algo);
+
+        return MessageDigest.getInstance(algo);
     }
 }
