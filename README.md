@@ -29,7 +29,7 @@ The following is produced on a german Windows, if you want to see different deci
     # Benchmark mode: Average time, time/op
     # Benchmark: net.eckenfels.jmhtest.cryptospeed.HashBenchmark.MD2
     # Parameters: (bufsize = 0)
-    
+
     # Run progress: 0,00% complete, ETA 00:20:24
     # Fork: 1 of 1
     # Warmup Iteration   1: 12,095 ±(99.9%) 3,554 us/op
@@ -43,7 +43,7 @@ The following is produced on a german Windows, if you want to see different deci
                      ·gc.churn.Survivor_Space.norm: 0,024 B/op
                      ·gc.count:                     245,000 counts
                      ·gc.time:                      120,000 ms
-    
+
     Iteration   2: 11,577 ±(99.9%) 1,162 us/op
                      ·gc.alloc.rate:                210,270 MB/sec
                      ·gc.alloc.rate.norm:           638,118 B/op
@@ -53,7 +53,7 @@ The following is produced on a german Windows, if you want to see different deci
                      ·gc.churn.Survivor_Space.norm: 0,022 B/op
                      ·gc.count:                     244,000 counts
                      ·gc.time:                      116,000 ms
-    
+
     Iteration   3: 12,333 ±(99.9%) 0,446 us/op
                      ·gc.alloc.rate:                197,408 MB/sec
                      ·gc.alloc.rate.norm:           638,230 B/op
@@ -63,10 +63,10 @@ The following is produced on a german Windows, if you want to see different deci
                      ·gc.churn.Survivor_Space.norm: 0,021 B/op
                      ·gc.count:                     229,000 counts
                      ·gc.time:                      123,000 ms
-    
+
     ...
     # Run complete. Total time: 00:21:46
-    
+
     Benchmark                                                    (bufsize)  Mode  Cnt       Score        Error   Units
     HashBenchmark.MD2                                                    0  avgt    3      11,833 ±      7,900   us/op
     HashBenchmark.MD2:·gc.alloc.rate                                     0  avgt    3     205,911 ±    134,356  MB/sec
@@ -635,3 +635,11 @@ The following is produced on a german Windows, if you want to see different deci
     HmacBenchmark.HmacSHA512Short:·gc.alloc.rate.norm              1048576  avgt    3    1329,882 ±    220,775    B/op
     HmacBenchmark.HmacSHA512Short:·gc.count                        1048576  avgt    3         ? 0               counts
 
+## Testing BouncyCastle
+
+The BouncyCastle JCE provider is supported. You can select it with `-p provider=BC' and you need to specify the BCPROV JAR file on the command line like:
+
+(Windows)
+
+    java -cp c:\Users\USER\.m2\repository\org\bouncycastle\bcprov-ext-jdk15on\1.54\bcprov-ext-jdk15on-1.54.jar;target\jmhbench-cryptospeed.jar ^
+        org.openjdk.jmh.Main -p provider=SUN,BC

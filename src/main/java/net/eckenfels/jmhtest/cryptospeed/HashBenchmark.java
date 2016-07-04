@@ -5,9 +5,11 @@ import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Security;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -34,7 +36,7 @@ public class HashBenchmark
     @Param(value = { "0", "100", "1024", "1048576" })
     int size;
 
-    @Param(value = { "SHA1", "SHA224", "SHA256", "SHA384", "SHA512", "MD5" /* , "MD2" */ })
+    @Param(value = { "SHA1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "MD5" /* , "MD2" */ })
     private String algo;
 
     @Param(value = { "null", "SUN", "IBMJCE" })
@@ -60,6 +62,9 @@ public class HashBenchmark
 
         if ("null".equalsIgnoreCase(provider))
             provider = null;
+
+        if ("BC".equalsIgnoreCase(provider))
+            Security.addProvider(new BouncyCastleProvider());
 
         current = allocateDigest();
 
