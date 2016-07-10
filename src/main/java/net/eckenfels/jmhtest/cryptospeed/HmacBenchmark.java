@@ -3,6 +3,8 @@ package net.eckenfels.jmhtest.cryptospeed;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +39,9 @@ public class HmacBenchmark
     @Param(value = {"0", "100", "1024", "1048576"})
     int bufsize;
 
+    @Param(value = { "null", "SUN", "IBMJCE" /*, "BC"*/ })
+    private String provider;
+
     // thread local buffer to work on
     public byte[] inputBuf;
 
@@ -47,36 +52,33 @@ public class HmacBenchmark
     private SecretKey keySHA384;
     private SecretKey keySHA512;
 
-
-
     @Setup
     public void init()
-        throws NoSuchAlgorithmException
+        throws NoSuchAlgorithmException, InstantiationException, IllegalAccessException, ClassNotFoundException
     {
         Random r = new Random(42);
         inputBuf = new byte[bufsize];
         r.nextBytes(inputBuf);
 
-        KeyGenerator keyGen = KeyGenerator.getInstance("HmacMD5");
-        keyMD5 = keyGen.generateKey();
-        keyGen = KeyGenerator.getInstance("HmacSHA1");
-        keySHA1 = keyGen.generateKey();
-        keyGen = KeyGenerator.getInstance("HmacSHA224");
-        keySHA224 = keyGen.generateKey();
-        keyGen = KeyGenerator.getInstance("HmacSHA256");
-        keySHA256 = keyGen.generateKey();
-        keyGen = KeyGenerator.getInstance("HmacSHA384");
-        keySHA384 = keyGen.generateKey();
-        keyGen = KeyGenerator.getInstance("HmacSHA512");
-        keySHA512 = keyGen.generateKey();
+        if ("BC".equalsIgnoreCase(provider))
+            Security.addProvider((Provider)Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider").newInstance());
+
+        keyMD5 = generateKey("HmacMD5");
+        keySHA1 = generateKey("HmacSHA1");
+        keySHA224 = generateKey("HmacSHA224");
+        keySHA256 = generateKey("HmacSHA256");
+        keySHA384 = generateKey("HmacSHA384");
+        keySHA512 = generateKey("HmacSHA512");
     }
+
+
 
 
     @Benchmark
     public byte[] HmacMD5()
         throws NoSuchAlgorithmException, InvalidKeyException
     {
-        Mac mac = Mac.getInstance("HmacMD5");
+        Mac mac = getMac("HmacMD5");
         mac.init(keyMD5);
         return mac.doFinal(inputBuf);
     }
@@ -85,7 +87,7 @@ public class HmacBenchmark
     public byte[] HmacSHA1()
         throws NoSuchAlgorithmException, InvalidKeyException
     {
-        Mac mac = Mac.getInstance("HmacSHA1");
+        Mac mac = getMac("HmacSHA1");
         mac.init(keySHA1);
         return mac.doFinal(inputBuf);
     }
@@ -95,7 +97,7 @@ public class HmacBenchmark
     public byte[] HmacSHA224()
         throws NoSuchAlgorithmException, InvalidKeyException
     {
-        Mac mac = Mac.getInstance("HmacSHA224");
+        Mac mac = getMac("HmacSHA224");
         mac.init(keySHA224);
         return mac.doFinal(inputBuf);
     }
@@ -105,7 +107,7 @@ public class HmacBenchmark
     public byte[] HmacSHA256()
         throws NoSuchAlgorithmException, InvalidKeyException
     {
-        Mac mac = Mac.getInstance("HmacSHA256");
+        Mac mac = getMac("HmacSHA256");
         mac.init(keySHA256);
         return mac.doFinal(inputBuf);
     }
@@ -115,7 +117,7 @@ public class HmacBenchmark
     public byte[] HmacSHA384()
         throws NoSuchAlgorithmException, InvalidKeyException
     {
-        Mac mac = Mac.getInstance("HmacSHA384");
+        Mac mac = getMac("HmacSHA384");
         mac.init(keySHA384);
         return mac.doFinal(inputBuf);
     }
@@ -124,7 +126,7 @@ public class HmacBenchmark
     public byte[] HmacSHA512()
         throws NoSuchAlgorithmException, InvalidKeyException
     {
-        Mac mac = Mac.getInstance("HmacSHA512");
+        Mac mac = getMac("HmacSHA512");
         mac.init(keySHA512);
         return mac.doFinal(inputBuf);
     }
@@ -133,8 +135,35 @@ public class HmacBenchmark
     public byte[] HmacSHA512Short()
         throws NoSuchAlgorithmException, InvalidKeyException
     {
-        Mac mac = Mac.getInstance("HmacSHA256");
+        Mac mac = getMac("HmacSHA256");
         mac.init(keySHA1); // ***
         return mac.doFinal(inputBuf);
     }
+
+
+    private SecretKey generateKey(String alg) throws NoSuchAlgorithmException
+    {
+        if ("null".equalsIgnoreCase(provider))
+            return KeyGenerator.getInstance(alg).generateKey();
+
+        Provider p = Security.getProvider(provider);
+        if (p == null)
+            throw new NoSuchAlgorithmException("Provider " + provider + " not found");
+
+        return KeyGenerator.getInstance(alg, p).generateKey();
+    }
+
+    private Mac getMac(String alg) throws NoSuchAlgorithmException
+    {
+        if ("null".equalsIgnoreCase(provider))
+            return Mac.getInstance(alg);
+
+        Provider p = Security.getProvider(provider);
+        if (p == null)
+            throw new NoSuchAlgorithmException("Provider " + provider + " not found");
+
+        return Mac.getInstance(alg, p);
+    }
+
+
 }

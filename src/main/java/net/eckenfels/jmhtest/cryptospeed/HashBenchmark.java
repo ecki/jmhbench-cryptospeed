@@ -5,11 +5,11 @@ import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.Security;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -54,7 +54,7 @@ public class HashBenchmark
 
     @Setup
     public void init()
-        throws NoSuchAlgorithmException, NoSuchProviderException
+        throws NoSuchAlgorithmException, NoSuchProviderException, InstantiationException, IllegalAccessException, ClassNotFoundException
     {
         Random r = new Random(42);
         inputBuf = new byte[size];
@@ -64,7 +64,7 @@ public class HashBenchmark
             provider = null;
 
         if ("BC".equalsIgnoreCase(provider))
-            Security.addProvider(new BouncyCastleProvider());
+            Security.addProvider((Provider)Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider").newInstance());
 
         current = allocateDigest();
 
