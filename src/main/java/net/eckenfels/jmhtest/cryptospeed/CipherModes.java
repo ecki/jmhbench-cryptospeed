@@ -6,7 +6,9 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Random;
@@ -55,7 +57,7 @@ public class CipherModes
     @Param(value = {"AES/CBC/NOPADDING", "AES/CBC/PKCS5Padding", "AES/CBC/ISO10126PADDING", "AES/GCM/NOPADDING", "AES/CTR/NOPADDING"})
     String cipher;
 
-    @Param(value = {"SunJCE"})
+    @Param(value = {"null", "SunJCE", "IBMJCE" /*, "BC" */})
     String provider;
 
     @Param(value = {"128", "192", "256"})
@@ -74,14 +76,23 @@ public class CipherModes
     public void init() throws NoSuchAlgorithmException, InvalidKeySpecException,
                            InvalidKeyException, NoSuchPaddingException,
                            InvalidAlgorithmParameterException, IllegalBlockSizeException,
-                           BadPaddingException, NoSuchProviderException
+                           BadPaddingException, NoSuchProviderException, InstantiationException, IllegalAccessException, ClassNotFoundException
     {
         sr = SecureRandom.getInstance("SHA1PRNG");
 
+        if ("BC".equalsIgnoreCase(provider))
+            Security.addProvider((Provider)Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider").newInstance());
+
         // one (random) key to rule them all
-        KeyGenerator gen = KeyGenerator.getInstance("AES", provider);
+        KeyGenerator gen;
+        if ("null".equals(provider))
+            gen = KeyGenerator.getInstance("AES");
+        else
+            gen = KeyGenerator.getInstance("AES", provider);
         gen.init(keysize, sr);
         encKey = gen.generateKey();
+
+
 
         // setup input message
         // round up for blocked non-padding case
@@ -131,7 +142,7 @@ public class CipherModes
     public byte[] encryptFinalArrayCopy()
                     throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, ShortBufferException, NoSuchProviderException
     {
-        c = Cipher.getInstance(cipher, provider);
+        c = getCipher(cipher);
         c.init(Cipher.ENCRYPT_MODE, encKey, iv);
         return c.doFinal(inputArray);
     }
@@ -140,7 +151,7 @@ public class CipherModes
     public byte[] encryptFinalArrayWork()
                     throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, ShortBufferException, NoSuchProviderException
     {
-        c = Cipher.getInstance(cipher, provider);
+        c = getCipher(cipher);
         c.init(Cipher.ENCRYPT_MODE, encKey, iv);
         /*int olen =*/ c.doFinal(inputArray, 0, inputArray.length, workArray, 0);
         return workArray;
@@ -150,7 +161,7 @@ public class CipherModes
     public byte[] encryptUpdateArrayWork()
                     throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException, ShortBufferException, NoSuchProviderException
     {
-        c = Cipher.getInstance(cipher, provider);
+        c = getCipher(cipher);
         c.init(Cipher.ENCRYPT_MODE, encKey, iv);
         int x = c.update(inputArray, 0, inputArray.length, workArray);
         /*int olen =*/ c.doFinal(workArray, x);
@@ -164,9 +175,17 @@ public class CipherModes
             inputBuffer.flip();
         if (workBuffer.position() != 0)
             workBuffer.clear();
-        c = Cipher.getInstance(cipher, provider);
+        c = getCipher(cipher);
         c.init(Cipher.ENCRYPT_MODE, encKey, iv);
         c.doFinal(inputBuffer, workBuffer);
         return workBuffer;
+    }
+
+    private Cipher getCipher(String alg) throws NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException
+    {
+        if ("null".equals(provider))
+            return Cipher.getInstance(alg);
+        else
+            return Cipher.getInstance(alg, provider);
     }
 }
